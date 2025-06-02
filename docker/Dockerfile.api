@@ -1,0 +1,19 @@
+FROM python:3.13-slim
+
+# Establecer directorio de trabajo
+WORKDIR /usr/src/app
+
+# Copiar dependencias
+COPY src/requirements.txt ./
+
+# Instalar dependencias
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copiar el código de la aplicación
+COPY src/ ./
+
+# Exponer el puerto de la API
+EXPOSE 8000
+
+# Comando por defecto
+CMD ["python", "app.py"]

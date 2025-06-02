@@ -1,0 +1,13 @@
+FROM grafana/grafana:latest
+
+# Copiar dashboards y configuración
+COPY docker/provisioning/ /etc/grafana/provisioning/
+COPY docker/dashboards/ /var/lib/grafana/dashboards/
+
+# Instalar plugins si es necesario
+# RUN grafana-cli plugins install grafana-piechart-panel
+
+# Exponer puerto de Grafana
+EXPOSE 3000
+
+# Comando por defecto (ya definido en la imagen base)
