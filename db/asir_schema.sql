@@ -19,7 +19,7 @@ CREATE TABLE Proyectos (
     id_proyecto INT AUTO_INCREMENT PRIMARY KEY,
     titulo VARCHAR(255) NOT NULL,
     descripcion TEXT,
-    fecha_creacion DATE DEFAULT NOT NULL,
+    fecha_creacion DATE NOT NULL,
     estado VARCHAR(50) DEFAULT 'activo'
 ) ENGINE=InnoDB;
 
