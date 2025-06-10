@@ -1,0 +1,5 @@
+# Evitar empaquetar el repositorio completo (y acortar el contexto)
+.git
+.ci
+Dockerfile*    # si quieres excluir otros Dockerfiles alternativos
+.dockerignore
