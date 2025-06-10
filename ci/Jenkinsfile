@@ -1,22 +1,41 @@
 pipeline {
   agent any
+
   stages {
     stage('Checkout') {
       steps {
         checkout scm
       }
     }
+
     stage('Build') {
+      agent {
+        docker {
+          image 'docker:24.0.0-cli'
+          args  '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+      }
       steps {
         sh 'docker build -t mi-registro/api:latest -f docker/Dockerfile.api .'
       }
     }
+
     stage('Test') {
       steps {
-        sh 'pytest --maxfail=1 --disable-warnings -q'
+        // Crear carpeta para resultados de test
+        sh 'mkdir -p reports'
+        // Ejecutar pytest y generar JUnit XML
+        sh 'pytest --maxfail=1 --disable-warnings -q --junitxml=reports/results.xml'
       }
     }
+
     stage('Push') {
+      agent {
+        docker {
+          image 'docker:24.0.0-cli'
+          args  '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+      }
       steps {
         withCredentials([string(credentialsId: 'docker-cred', variable: 'DOCKER_PASS')]) {
           sh 'echo $DOCKER_PASS | docker login mi-registro -u mi-user --password-stdin'
@@ -24,15 +43,19 @@ pipeline {
         }
       }
     }
+
     stage('Deploy') {
       steps {
         sh 'helm upgrade --install api ./charts/api -f charts/api/values.yaml'
       }
     }
   }
+
   post {
     always {
-      junit '**/target/surefire-reports/*.xml'
+      // Publicar resultados de pytest
+      junit 'reports/results.xml'
+      // Archivar artefactos
       archiveArtifacts artifacts: '**/build/libs/*.jar', fingerprint: true
     }
   }
