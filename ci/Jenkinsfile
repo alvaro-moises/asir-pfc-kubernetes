@@ -9,37 +9,32 @@ pipeline {
     }
 
     stage('Build') {
-      agent {
-        docker {
-          image 'docker:24.0.0-cli'
-          args  '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-      }
       steps {
-        sh 'docker build -t mi-registro/api:latest -f docker/Dockerfile.api .'
+        script {
+          // Cargamos la imagen docker:cli y montamos el socket
+          docker.image('docker:24.0.0-cli').inside('-v /var/run/docker.sock:/var/run/docker.sock') {
+            sh 'docker build -t mi-registro/api:latest -f docker/Dockerfile.api .'
+          }
+        }
       }
     }
 
     stage('Test') {
       steps {
-        // Crear carpeta para resultados de test
         sh 'mkdir -p reports'
-        // Ejecutar pytest y generar JUnit XML
         sh 'pytest --maxfail=1 --disable-warnings -q --junitxml=reports/results.xml'
       }
     }
 
     stage('Push') {
-      agent {
-        docker {
-          image 'docker:24.0.0-cli'
-          args  '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-      }
       steps {
-        withCredentials([string(credentialsId: 'docker-cred', variable: 'DOCKER_PASS')]) {
-          sh 'echo $DOCKER_PASS | docker login mi-registro -u mi-user --password-stdin'
-          sh 'docker push mi-registro/api:latest'
+        script {
+          docker.image('docker:24.0.0-cli').inside('-v /var/run/docker.sock:/var/run/docker.sock') {
+            withCredentials([string(credentialsId: 'docker-cred', variable: 'DOCKER_PASS')]) {
+              sh 'echo $DOCKER_PASS | docker login mi-registro -u mi-user --password-stdin'
+              sh 'docker push mi-registro/api:latest'
+            }
+          }
         }
       }
     }
@@ -53,9 +48,7 @@ pipeline {
 
   post {
     always {
-      // Publicar resultados de pytest
       junit 'reports/results.xml'
-      // Archivar artefactos
       archiveArtifacts artifacts: '**/build/libs/*.jar', fingerprint: true
     }
   }
