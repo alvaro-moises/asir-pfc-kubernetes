@@ -1,54 +1,33 @@
 pipeline {
-  agent any
+    agent any
 
-  options {
-    skipDefaultCheckout()
-  }
-
-  stages {
-    stage('Checkout') {
-      steps {
-        checkout scm
-      }
-    }
-
-    stage('Build') {
-      steps {
-        sh 'docker build -t mi-registro/api:latest -f docker/Dockerfile.api .'
-      }
-    }
-
-    stage('Test') {
-      steps {
-        sh 'mkdir -p reports'
-        sh 'pytest --maxfail=1 --disable-warnings -q --junitxml=reports/results.xml'
-      }
-    }
-
-    stage('Push') {
-      steps {
-        script {
-          docker.image('docker:24.0.0-cli').inside('-v /var/run/docker.sock:/var/run/docker.sock') {
-            withCredentials([string(credentialsId: 'docker-cred', variable: 'DOCKER_PASS')]) {
-              sh 'echo $DOCKER_PASS | docker login mi-registro -u mi-user --password-stdin'
-              sh 'docker push mi-registro/api:latest'
+    stages {
+        stage('Debug') {
+            steps {
+                sh 'ls -R'
             }
-          }
         }
-      }
-    }
 
-    stage('Deploy') {
-      steps {
-        sh 'helm upgrade --install api ./charts/api -f charts/api/values.yaml'
-      }
-    }
-  }
+        stage('Checkout') {
+            steps {
+                sh '''
+                rm -rf * .[^.] .??*
+                '''
+                sh 'git clone https://github.com/alvaro-moises/asir-pfc-kubernetes.git .'
+            }
+        }
 
-  post {
-    always {
-      junit 'reports/results.xml'
-      archiveArtifacts artifacts: '**/build/libs/*.jar', fingerprint: true
+        stage('Build') {
+            steps {
+                sh 'docker build -t mi-registro/api:latest -f docker/Dockerfile.api .'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'mkdir -p reports'
+                sh 'docker run --rm -v $PWD:/mnt/workspace -w /mnt/workspace python:3.13-slim bash -c "ls -l src && cat src/requirements.txt"'
+            }
+        }
     }
-  }
 }
