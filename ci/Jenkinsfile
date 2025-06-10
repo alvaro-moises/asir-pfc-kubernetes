@@ -10,12 +10,7 @@ pipeline {
 
     stage('Build') {
       steps {
-        script {
-          // Cargamos la imagen docker:cli y montamos el socket
-          docker.image('docker:24.0.0-cli').inside('-v /var/run/docker.sock:/var/run/docker.sock') {
-            sh 'docker build -t mi-registro/api:latest -f docker/Dockerfile.api .'
-          }
-        }
+        sh 'docker build -t mi-registro/api:latest -f docker/Dockerfile.api .'
       }
     }
 
